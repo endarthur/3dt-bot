@@ -5,16 +5,16 @@ var LZString = require('./lz-string.min.js');
 var auth = require('./auth.json');
 var fs = require('fs');
 var fichas_backup = require('./fichas.json');
-var ficha_por_usuario = require('./fichas_usuarios.json');;
+var ficha_por_usuario_total = require('./fichas_usuarios.json');;
 var rpg = true;
 
 function d6(modificador) {
     return Math.floor((Math.random() * 6) + 1 + modificador);
 }
 
-function checar_ficha(nome) {
-    return fichas[nome] != undefined;
-}
+// function checar_ficha(nome) {
+//     return fichas[nome] != undefined;
+// }
 
 function resplit_on_comma(list) {
     return list.join(" ").split(",").map(s => { return s.trim() })
@@ -110,10 +110,6 @@ const logger = winston.createLogger({
     ]
 });
 
-var fichas = {};
-for (var ficha in fichas_backup) {
-    fichas[ficha] = new Ficha(fichas_backup[ficha].nome, fichas_backup[ficha].caracteristicas, fichas_backup[ficha].vantagens, fichas_backup[ficha].desvantagens, fichas_backup[ficha].equipamentos, fichas_backup[ficha].pv, fichas_backup[ficha].pm);
-}
 
 // Initialize Discord Bot
 var bot = new Discord.Client({
@@ -125,10 +121,32 @@ bot.on('ready', function (evt) {
     logger.info('Logged in as: ');
     logger.info(bot.username + ' - (' + bot.id + ')');
 });
+
+var fichas_total = {};
+for (var canal in fichas_backup){
+    fichas_total[canal] = {};
+    var fichas_canal = fichas_backup[canal];
+    for (var ficha in fichas_canal) {
+        fichas_total[canal][ficha] = new Ficha(fichas_canal[ficha].nome, fichas_canal[ficha].caracteristicas, fichas_canal[ficha].vantagens, fichas_canal[ficha].desvantagens, fichas_canal[ficha].equipamentos, fichas_canal[ficha].pv, fichas_canal[ficha].pm);
+    }
+}
+
 bot.on('message', function (user, userID, channelID, message, evt) {
     // Our bot needs to know if it will execute a command
     // It will listen for messages that will start with `!`
+    var canal = `${channelID}`;
+    var fichas = fichas_total[canal];
+    var ficha_por_usuario = ficha_por_usuario_total[canal];
+    if (fichas === undefined){
+        fichas_total[canal] = {};
+        fichas = fichas_total[canal];
+    }
+    if (ficha_por_usuario === undefined){
+        ficha_por_usuario_total[canal] = {};
+        ficha_por_usuario = ficha_por_usuario_total[canal];
+    }
 
+    // logger.info(`${channelID}`);
     if (message.startsWith("!rpg")) {
         rpg = !rpg;
         if (rpg) {
@@ -148,7 +166,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         var personagem_default = false;
         if (args.length > 1) {
             // logger.info(`checando ficha: ${args[1]}`);
-            if (checar_ficha(args[1])) {
+            if (fichas[args[1]] != undefined) {
                 personagem = args[1];
             } else if (ficha_por_usuario[user] != undefined) {
                 personagem = ficha_por_usuario[user];
@@ -328,11 +346,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
     }
 
-    fs.writeFile("fichas.json", JSON.stringify(fichas), "utf8", (err) => {
+    fs.writeFile("fichas.json", JSON.stringify(fichas_total), "utf8", (err) => {
         if (err) throw err;
     });
 
-    fs.writeFile("fichas_usuarios.json", JSON.stringify(ficha_por_usuario), "utf8", (err) => {
+    fs.writeFile("fichas_usuarios.json", JSON.stringify(ficha_por_usuario_total), "utf8", (err) => {
         if (err) throw err;
     });
     // bot.sendMessage({
