@@ -10,3 +10,8 @@ https://discordapp.com/oauth2/authorize?client_id=473640507273248781&scope=bot
 
 # TODO
 * Adicionar tutorial interativo
+
+# Como foi feito?
+Principalmente seguindo este tutorial:
+
+https://github.com/endarthur/3dt-bot
